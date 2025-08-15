@@ -1,22 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Projectile Motion Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Projectile Game</title>
     <style>
-        body { text-align: center; font-family: Arial; }
-        canvas { border: 2px solid black; background: lightblue; }
-        input, button { margin: 5px; }
-        h2 { margin-top: 0; }
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #0077b6;
+            color: white;
+            padding: 10px;
+        }
+        canvas {
+            border: 2px solid black;
+            background: lightblue;
+            margin-top: 10px;
+        }
+        input, button {
+            margin: 5px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        .scoreboard {
+            background: #caf0f8;
+            padding: 8px;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
-    <h1>🎯 Physics Projectile Game</h1>
-    <h2>Level: <span id="level">1</span> | Score: <span id="score">0</span></h2>
+    <header>
+        <h1>🎯 Physics Projectile Game</h1>
+    </header>
+    <div class="scoreboard">
+        Level: <span id="level">1</span> | Score: <span id="score">0</span>
+    </div>
     
-    <label>Angle (°): <input type="number" id="angle" value="45"></label>
-    <label>Speed (m/s): <input type="number" id="speed" value="50"></label>
-    <button onclick="startGame()">Launch</button>
-    <button onclick="resetGame()">Reset Game</button>
+    <div>
+        <label>Angle (°): 
+            <input type="number" id="angle" value="45">
+        </label>
+        <label>Speed (m/s): 
+            <input type="number" id="speed" value="50">
+        </label>
+        <br>
+        <button onclick="startGame()">Launch</button>
+        <button onclick="resetGame()">Reset Game</button>
+    </div>
 
     <canvas id="gameCanvas" width="800" height="400"></canvas>
 
