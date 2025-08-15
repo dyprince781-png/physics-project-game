@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Projectile Motion Game</title>
+    <style>
+        body { text-align: center; font-family: Arial; }
+        canvas { border: 2px solid black; background: lightblue; }
+        input, button { margin: 5px; }
+        h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Physics Projectile Game</h1>
+    <h2>Level: <span id="level">1</span> | Score: <span id="score">0</span></h2>
+    
+    <label>Angle (°): <input type="number" id="angle" value="45"></label>
+    <label>Speed (m/s): <input type="number" id="speed" value="50"></label>
+    <button onclick="startGame()">Launch</button>
+    <button onclick="resetGame()">Reset Game</button>
+
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let g = 9.8;
+
+        let level = 1;
+        let score = 0;
+        let targetX, targetY = 350;
+
+        function drawTarget() {
+            ctx.fillStyle = "red";
+            ctx.fillRect(targetX, targetY - 20, 20, 20);
+        }
+
+        function newTarget() {
+            targetX = Math.random() * (200 + level * 50) + 400;
+        }
+
+        function startGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTarget();
+
+            let angle = document.getElementById("angle").value * Math.PI / 180;
+            let speed = parseFloat(document.getElementById("speed").value);
+
+            let t = 0;
+            function animate() {
+                let x = speed * Math.cos(angle) * t;
+                let y = speed * Math.sin(angle) * t - 0.5 * g * t * t;
+
+                let drawX = x;
+                let drawY = canvas.height - (y + 50);
+
+                if (drawY > canvas.height - 50) {
+                    if (drawX > targetX && drawX < targetX + 20) {
+                        alert("🎉 Hit! Next Level");
+                        score += 10;
+                        level++;
+                        document.getElementById("score").innerText = score;
+                        document.getElementById("level").innerText = level;
+                        newTarget();
+                    } else {
+                        alert("❌ Missed! Try again.");
+                    }
+                    return;
+                }
+
+                ctx.beginPath();
+                ctx.arc(drawX, drawY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = "black";
+                ctx.fill();
+
+                t += 0.1;
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function resetGame() {
+            level = 1;
+            score = 0;
+            document.getElementById("level").innerText = level;
+            document.getElementById("score").innerText = score;
+            newTarget();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTarget();
+        }
+
+        newTarget();
+        drawTarget();
+    </script>
+</body>
+</html>
