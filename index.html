@@ -1,150 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <title>Physics Projectile Game</title>
-  <style>
-    body {
-      margin: 0; padding: 0;
-      font-family: Arial, sans-serif;
-      background: url('https://source.unsplash.com/featured/?space,stars') no-repeat center center fixed;
-      background-size: cover;
-      color: #fff;
-      text-align: center;
-    }
-    header {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 12px;
-      font-size: 1.4em;
-      font-weight: bold;
-    }
-    .scoreboard {
-      background: rgba(0, 0, 0, 0.4);
-      padding: 8px;
-      font-size: 1.1em;
-      margin-bottom: 10px;
-    }
-    input, button {
-      margin: 8px;
-      padding: 12px 20px;
-      font-size: 1.1em;
-      border-radius: 6px;
-      border: none;
-      box-sizing: border-box;
-    }
-    input {
-      width: 80px;
-      text-align: center;
-    }
-    button {
-      background: #0077b6;
-      color: #fff;
-      width: 45%;
-      max-width: 160px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0096c7;
-    }
-    canvas {
-      width: 100%;
-      max-width: 800px;
-      height: auto;
-      display: block;
-      margin: 10px auto;
-      background: rgba(0, 0, 0, 0.3);
-      box-shadow: 0 0 10px rgba(0,0,0,0.7);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projectile Motion Challenge</title>
+<style>
+  body { margin: 0; background: #141414; color: white; font-family: Arial, sans-serif; text-align: center; }
+  canvas { background: #141414; display: block; margin: auto; }
+  .controls { display: flex; flex-wrap: wrap; justify-content: center; padding: 8px; }
+  button {
+    font-size: 18px; margin: 4px; padding: 10px 16px; border-radius: 8px;
+    border: none; color: white; background: #444; cursor: pointer;
+  }
+  button.green { background: #28a745; }
+  button.blue { background: #007bff; }
+  button.red { background: #dc3545; }
+  button.purple { background: #6f42c1; }
+</style>
 </head>
 <body>
 
-<header>🚀 Physics Projectile Game</header>
-<div class="scoreboard">
-  Score: <span id="score">0</span>
+<h1>Projectile Motion Challenge</h1>
+<canvas id="gameCanvas" width="900" height="520"></canvas>
+<div class="controls">
+  <button onclick="changeAngle(-1)">-θ</button>
+  <button onclick="changeAngle(1)">+θ</button>
+  <button onclick="changePower(-1)">-P</button>
+  <button onclick="changePower(1)">+P</button>
+  <button class="green" onclick="fire()">FIRE!</button>
+  <button class="blue" onclick="nextTarget()">NEXT</button>
+  <button class="red" onclick="resetGame()">RESET</button>
+  <button class="purple" onclick="toggleHelp()">HELP</button>
 </div>
-
-<div>
-  <label>Angle (°): <input type="number" id="angle" value="45"></label>
-  <label>Speed: <input type="number" id="speed" value="50"></label>
-</div>
-
-<div>
-  <button onclick="launch()">Launch</button>
-  <button onclick="resetGame()">Reset Game</button>
-</div>
-
-<canvas id="gameCanvas" width="800" height="400"></canvas>
 
 <script>
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-  let projectile = null;
-  let target = { x: Math.random() * 700 + 50, y: 350, r: 20 };
-  let score = 0;
+const WIDTH = canvas.width, HEIGHT = canvas.height;
+const GROUND_Y = HEIGHT - 80;
+const GRAVITY = 9.8;
+const PIXELS_PER_METER = 60;
+let angle = 45, power = 25;
+let projectile = { x: 60, y: GROUND_Y, vx: 0, vy: 0, active: false, path: [] };
+let windAx = (Math.random()*4 - 2);
+let score = 0, shots = 0, streak = 0, bestStreak = 0;
+let target = { x: 500, y: GROUND_Y, r: 18 };
+let message = "Tap +/- to set angle & power. Tap FIRE!";
+let showHelp = false;
 
-  function drawTarget() {
-    ctx.beginPath();
-    ctx.arc(target.x, target.y, target.r, 0, Math.PI * 2);
-    ctx.fillStyle = "red";
-    ctx.fill();
-    ctx.closePath();
+function resetPositions() {
+  projectile.x = 60;
+  projectile.y = GROUND_Y;
+  projectile.vx = 0;
+  projectile.vy = 0;
+  projectile.path = [];
+}
+
+function newTarget() {
+  target.x = Math.floor(Math.random() * (WIDTH - 420) + 420);
+  target.y = GROUND_Y - Math.floor(Math.random() * 120);
+}
+
+function resetGame() {
+  angle = 45; power = 25; windAx = (Math.random()*4 - 2);
+  score = 0; shots = 0; streak = 0; bestStreak = 0;
+  resetPositions(); newTarget();
+  message = "Tap +/- to set angle & power. Tap FIRE!";
+}
+
+function nextTarget() {
+  windAx = (Math.random()*4 - 2);
+  resetPositions(); newTarget();
+  message = "New target! Adjust, then FIRE!";
+}
+
+function changeAngle(delta) {
+  angle = Math.max(5, Math.min(85, angle + delta));
+}
+
+function changePower(delta) {
+  power = Math.max(5, Math.min(60, power + delta));
+}
+
+function fire() {
+  if (projectile.active) return;
+  shots++;
+  let rad = angle * Math.PI / 180;
+  projectile.vx = power * Math.cos(rad);
+  projectile.vy = -power * Math.sin(rad);
+  projectile.active = true;
+  projectile.path = [{x: projectile.x, y: projectile.y}];
+  message = "Flight!";
+}
+
+function toggleHelp() { showHelp = !showHelp; }
+
+function update(dt) {
+  if (!projectile.active) return;
+  projectile.vx += windAx * dt;
+  projectile.vy += GRAVITY * dt;
+  projectile.x += projectile.vx * PIXELS_PER_METER * dt;
+  projectile.y += projectile.vy * PIXELS_PER_METER * dt;
+  projectile.path.push({x: projectile.x, y: projectile.y});
+
+  // Hit ground
+  if (projectile.y >= GROUND_Y) {
+    projectile.y = GROUND_Y;
+    projectile.active = false;
+    streak = 0;
+    message = "Missed! Adjust and try again.";
   }
 
-  function drawProjectile() {
-    if (projectile) {
-      ctx.beginPath();
-      ctx.arc(projectile.x, projectile.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = "yellow";
-      ctx.fill();
-      ctx.closePath();
-    }
+  // Out of bounds
+  if (projectile.x > WIDTH+50 || projectile.x < -50) {
+    projectile.active = false;
+    streak = 0;
+    message = "Out of bounds!";
   }
 
-  function launch() {
-    const angle = parseFloat(document.getElementById("angle").value) * Math.PI / 180;
-    const speed = parseFloat(document.getElementById("speed").value);
-    projectile = { x: 50, y: 350, vx: speed * Math.cos(angle), vy: -speed * Math.sin(angle), t: 0 };
+  // Hit target
+  let dx = projectile.x - target.x;
+  let dy = projectile.y - target.y;
+  if (dx*dx + dy*dy <= target.r*target.r) {
+    projectile.active = false;
+    score += 100;
+    streak++;
+    bestStreak = Math.max(bestStreak, streak);
+    message = "Hit! Tap NEXT to continue.";
   }
+}
 
-  function resetGame() {
-    projectile = null;
-    target.x = Math.random() * 700 + 50;
-    document.getElementById("score").textContent = score;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawTarget();
+function draw() {
+  ctx.fillStyle = "#141414";
+  ctx.fillRect(0,0,WIDTH,HEIGHT);
+
+  // Ground
+  ctx.fillStyle = "#3a6b3a";
+  ctx.fillRect(0,GROUND_Y,WIDTH,HEIGHT-GROUND_Y);
+
+  // Launcher
+  ctx.fillStyle = "blue";
+  ctx.beginPath();
+  ctx.arc(60,GROUND_Y,10,0,Math.PI*2);
+  ctx.fill();
+  let rad = angle * Math.PI / 180;
+  ctx.strokeStyle = "blue";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(60,GROUND_Y);
+  ctx.lineTo(60 + Math.cos(rad)*60, GROUND_Y - Math.sin(rad)*60);
+  ctx.stroke();
+
+  // Target
+  ctx.fillStyle = "red";
+  ctx.beginPath();
+  ctx.arc(target.x,target.y,target.r,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = "white";
+  ctx.stroke();
+
+  // Projectile path
+  ctx.strokeStyle = "yellow";
+  ctx.beginPath();
+  projectile.path.forEach((p,i)=>{
+    if(i===0) ctx.moveTo(p.x,p.y);
+    else ctx.lineTo(p.x,p.y);
+  });
+  ctx.stroke();
+  ctx.fillStyle = "purple";
+  ctx.beginPath();
+  ctx.arc(projectile.x,projectile.y,6,0,Math.PI*2);
+  ctx.fill();
+
+  // UI text
+  ctx.fillStyle = "white";
+  ctx.font = "18px Arial";
+  ctx.fillText(`Angle: ${angle}°`, 20, 20);
+  ctx.fillText(`Power: ${power} m/s`, 20, 40);
+  ctx.fillText(`Score: ${score} Shots: ${shots} Best Streak: ${bestStreak}`, 20, 60);
+  ctx.fillText(`Wind a_x = ${windAx.toFixed(1)} m/s²`, WIDTH-200, 20);
+  ctx.fillText(message, 20, HEIGHT-10);
+
+  // Help overlay
+  if (showHelp) {
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(40,HEIGHT/2-100,WIDTH-80,200);
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+    let lines = [
+      "HOW TO PLAY:",
+      "1) Use -θ/+θ to change angle (5°..85°).",
+      "2) Use -P/+P to change speed (5..60 m/s).",
+      "3) Tap FIRE! to launch.",
+      "4) Wind adds horizontal acceleration a_x.",
+      "5) Hit the red target to score 100. NEXT = new target.",
+      "FORMULAS:",
+      "Range (no wind): R = v²·sin(2θ)/g",
+      "Peak height: H = v²·sin²(θ)/(2g)",
+      "Tip: 45° is best for max range on level ground."
+    ];
+    lines.forEach((line,i)=>ctx.fillText(line,60,HEIGHT/2-80+i*18));
   }
+}
 
-  function update() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawTarget();
+let lastTime = 0;
+function loop(timestamp) {
+  let dt = (timestamp - lastTime) / 1000;
+  lastTime = timestamp;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
 
-    if (projectile) {
-      projectile.t += 0.1;
-      projectile.x = 50 + projectile.vx * projectile.t;
-      projectile.y = 350 + projectile.vy * projectile.t + 0.5 * 9.8 * Math.pow(projectile.t, 2);
-
-      drawProjectile();
-
-      if (Math.hypot(projectile.x - target.x, projectile.y - target.y) < target.r) {
-        score++;
-        projectile = null;
-        target.x = Math.random() * 700 + 50;
-        document.getElementById("score").textContent = score;
-      }
-
-      if (projectile.y > canvas.height) {
-        projectile = null;
-      }
-    }
-
-    requestAnimationFrame(update);
-  }
-
-  update();
+resetGame();
+requestAnimationFrame(loop);
 </script>
 
 </body>
-</html>
+  </html>
